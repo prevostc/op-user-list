@@ -4,15 +4,13 @@ import csv
 from dataclasses import dataclass
 from decimal import Decimal
 
-    
-
 def main():
     """
     Can you send us the list of wallet addresses users who had tokens in the following pools from July 8th to September 3rd?
     - ETH/USDC Vault on Mode
     - USDC/AERO Vault on Base
-    - mooBIFI-​ETH Vault on Optimism
-    - wfrxETH/​sfrxETH vault on Fraxtal
+    - mooBIFI-ETH Vault on Optimism
+    - wfrxETH/sfrxETH vault on Fraxtal
     """
     print("Hello, World!")
 
@@ -38,35 +36,28 @@ def main():
         #     print(f"  Block: {transfer.block_number}")
         #     print("  " + "-"*40)
 
-        # address -> list[int]
-        balance_diffs_per_address = {}
+        # addresses holding on the first block
+        initial_holders = set([b.address for b in balance_at_start])
+
+        # anyone who ever had positive balance after a transaction
+        transfer_holders = set()
+        transfers_per_transaction = {}
         for transfer in transfers:
-            from_address = transfer.from_address.lower()
-            to_address = transfer.to_address.lower()
-            amount = transfer.value
+            tx_hash = transfer.transaction_hash
+            if tx_hash not in transfers_per_transaction:
+                transfers_per_transaction[tx_hash] = []
+            transfers_per_transaction[tx_hash].append(transfer)
 
-            if from_address != "0x0000000000000000000000000000000000000000":
-                balance_diffs_per_address.setdefault(from_address, []).append(-amount)
-            
-            if to_address != "0x0000000000000000000000000000000000000000":
-                balance_diffs_per_address.setdefault(to_address, []).append(amount)
+        for tx_hash, trx_transfers in transfers_per_transaction.items():
+            diff_per_user = {}
+            for transfer in trx_transfers:
+                diff_per_user[transfer.from_address] = -transfer.value
+                diff_per_user[transfer.to_address] = transfer.value
+            for address, diff in diff_per_user.items():
+                if diff > 0:
+                    transfer_holders.add(address)
 
-        # now, for each holder in the initial list, check if we have 
-        # ever reached a balance of zero, if yes, remove from the set of valid addresses
-        balance_per_address = {b.address.lower(): b.amount for b in balance_at_start}
-        valid_addresses = set([b.address for b in balance_at_start])
-        for address, diffs in balance_diffs_per_address.items():
-            if address not in valid_addresses:
-                continue
-
-            initial_balance = balance_per_address[address]
-            current_balance = initial_balance
-            for diff in diffs:
-                current_balance += diff
-                if current_balance == 0:
-                    print(f"Address {address} has reached zero balance on {chain} for vault {vault_addr}")
-                    valid_addresses.discard(address)
-                    break
+        valid_addresses = initial_holders.union(transfer_holders)
 
         # export
         # Export valid addresses to CSV
@@ -166,6 +157,7 @@ def get_balances_at_block(chain: str, vault_addr: str, block_number: int) -> lis
 
 @dataclass
 class Transfer:
+    transaction_hash: str
     block_number: int
     from_address: str
     to_address: str
@@ -186,14 +178,21 @@ def read_transfers(chain: str, vault_addr: str) -> list[Transfer]:
         reader = csv.DictReader(csvfile)
         for row in reader:
             if chain == "mode":
+                if row['TokenContractAddress'].lower() != vault_addr.lower():
+                    continue
+
                 transaction = Transfer(
+                    transaction_hash=row['TxHash'],    
                     block_number=int(row['BlockNumber']),
                     from_address=row['FromAddress'].lower(),
                     to_address=row['ToAddress'].lower(),
                     value=int(row['TokensTransferred'])
                 )
             else:
+                if row['ContractAddress'].lower() != vault_addr.lower():
+                    continue
                 transaction = Transfer(
+                    transaction_hash=row['Transaction Hash'],
                     block_number=int(row['Blockno']),
                     from_address=row['From'].lower(),
                     to_address=row['To'].lower(),
