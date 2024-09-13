@@ -9,27 +9,10 @@ from decimal import Decimal
 def main():
     """
     Can you send us the list of wallet addresses users who had tokens in the following pools from July 8th to September 3rd?
-    - ETH/USDC Vault on Mode: https://explorer.mode.network//address/0x42f1A7795083eeE1f804DD4D33C5e69A0F32Bca4
-    - USDC/AERO Vault on Base: https://basescan.org/address/0xc005B9833deBcF5fe6cc5bC9ba4fD74Bb382ae55
-    - mooBIFI-​ETH Vault on Optimism: https://optimistic.etherscan.io/address/0x57d00d036485B5fEE6A58c8763Bdc358906E6D19
-    - wfrxETH/​sfrxETH vault on Fraxtal: https://fraxscan.com/address/0xcb25214EC41Ea480068638897FcBd6F1206F5521
-
-    the plan:
-    - find the address of the vaults in beefy's config
-    - find the bounding start and end block using https://dm-control.beefy.com/d/xYGUuLUVz/blocks-around-a-date?orgId=1
-    - holder on July 8th:
-        - use the balance subgraph with a query at block for those vaults
-        - filter out the zero balances
-    - all people who ever held after July 8th:
-        - get the list of transfers from explorers
-        - filter the transfers with the bounding blocks
-        - filter out the zero balances
-    - merge the two lists and remove duplicates
-
-    OP: 122399012 -> 124904611
-    BASE: 16803727 -> 19309326
-    MODE: 10114609 -> 12620208
-    FRAXTAL: 6793045 -> 9298644
+    - ETH/USDC Vault on Mode
+    - USDC/AERO Vault on Base
+    - mooBIFI-​ETH Vault on Optimism
+    - wfrxETH/​sfrxETH vault on Fraxtal
     """
     print("Hello, World!")
 
